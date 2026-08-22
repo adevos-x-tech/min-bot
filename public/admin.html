@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adevos Min-Bot | Administrator Panel</title>
+  <link rel="icon" type="image/png" href="/icons/logo.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' } } } }
+    };
+  </script>
+  <style>
+    .glass-card { background: rgba(15,23,42,0.8); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+  </style>
+</head>
+<body class="bg-black text-slate-100 min-h-screen font-sans antialiased">
+
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col space-y-2 max-w-sm w-full pointer-events-none px-4"></div>
+
+  <!-- ADMIN LOGIN -->
+  <section id="admin-login-view" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass-card max-w-sm w-full rounded-2xl p-8 border border-amber-500/20 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl border border-amber-500/30">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <h1 class="text-xl font-bold text-white">Administrator Access</h1>
+        <p class="text-xs text-slate-400">Restricted area. Authorized personnel only.</p>
+      </div>
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Admin Username</label>
+          <input type="text" id="admin-user" required class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Admin Password</label>
+          <input type="password" id="admin-pass" required class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500" />
+        </div>
+        <button type="submit" id="admin-login-btn" class="w-full py-3 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-500 text-white shadow-lg">Sign In</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ADMIN DASHBOARD -->
+  <section id="admin-dashboard-view" class="hidden">
+    <header class="border-b border-slate-800 bg-slate-950/90 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/30"><i class="fa-solid fa-user-shield"></i></div>
+          <span class="font-black text-white">ADEVOS ADMIN</span>
+        </div>
+        <button onclick="handleAdminLogout()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-red-400 flex items-center space-x-2">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log Out</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div>
+        <h1 class="text-2xl font-extrabold text-white">System Overview</h1>
+        <p class="text-sm text-slate-400">Platform-wide statistics and session control</p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="glass-card rounded-2xl p-5 border border-slate-800"><span class="text-xs text-slate-400 block">Total Users</span><span class="text-2xl font-black text-white" id="admin-stat-users">-</span></div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800"><span class="text-xs text-slate-400 block">Active Sessions</span><span class="text-2xl font-black text-emerald-400" id="admin-stat-active">-</span></div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800"><span class="text-xs text-slate-400 block">Banned Sessions</span><span class="text-2xl font-black text-red-400" id="admin-stat-banned">-</span></div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800"><span class="text-xs text-slate-400 block">Total Groups</span><span class="text-2xl font-black text-white" id="admin-stat-groups">-</span></div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800"><span class="text-xs text-slate-400 block">Live Sockets</span><span class="text-2xl font-black text-white" id="admin-stat-sockets">-</span></div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-white">WhatsApp Sessions</h2>
+          <button onclick="loadAdminSessions()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Phone Number</th><th class="py-3 px-4">Status</th><th class="py-3 px-4">Source</th><th class="py-3 px-4">Last Seen</th><th class="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-sessions-body" class="divide-y divide-slate-800/60">
+              <tr><td colspan="5" class="py-6 text-center text-slate-500">Loading sessions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <h2 class="text-base font-bold text-white">Registered Users</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Username</th><th class="py-3 px-4">Telegram ID</th><th class="py-3 px-4">WhatsApp Number</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-body" class="divide-y divide-slate-800/60">
+              <tr><td colspan="5" class="py-6 text-center text-slate-500">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
