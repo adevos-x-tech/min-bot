@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Adevos Min-Bot | Unified WhatsApp and Telegram Bot Platform</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#10b981" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Adevos Bot" />
+  <link rel="apple-touch-icon" href="/icons/logo.png" />
+  <link rel="icon" type="image/png" href="/icons/logo.png" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#ecfdf5', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' },
+            telegram: { 400: '#38bdf8', 500: '#0284c7', 600: '#0369a1' },
+            surface: { 800: '#1e293b', 900: '#0f172a', 950: '#090d16' }
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .glass-card { background: rgba(15,23,42,0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+    .active-nav { color: #34d399 !important; background: rgba(16,185,129,0.12); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen font-sans antialiased flex flex-col selection:bg-brand-500 selection:text-white">
+
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col space-y-2 max-w-sm w-full pointer-events-none px-4"></div>
+
+  <!-- CONFIRMATION MODAL -->
+  <div id="confirm-modal" class="fixed inset-0 z-[999] bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl">
+      <div class="w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center text-xl mb-4">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2" id="modal-title">Confirm Action</h3>
+      <p class="text-sm text-slate-300 mb-6 leading-relaxed" id="modal-msg">Are you sure you want to proceed?</p>
+      <div class="flex items-center justify-end space-x-3">
+        <button id="modal-cancel-btn" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+        <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl text-sm font-medium bg-red-600 hover:bg-red-500 text-white">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="profile-modal" class="fixed inset-0 z-[900] bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div>
+          <h3 class="font-bold text-white text-base">Account Profile</h3>
+          <p class="text-xs text-slate-400">Manage credentials, bot linkings, and theme</p>
+        </div>
+        <button onclick="toggleProfileModal(false)" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-5 mt-5">
+        <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-400 block">Current Account</span>
+            <span class="font-semibold text-white text-sm" id="profile-username">-</span>
+            <span class="text-[11px] ml-2 px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20" id="profile-role">operator</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Display Theme</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setTheme('dark')" class="py-2 px-3 rounded-xl text-xs font-medium border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"><i class="fa-solid fa-moon"></i> Dark</button>
+            <button onclick="setTheme('light')" class="py-2 px-3 rounded-xl text-xs font-medium border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"><i class="fa-solid fa-sun"></i> Light</button>
+            <button onclick="setTheme('system')" class="py-2 px-3 rounded-xl text-xs font-medium border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"><i class="fa-solid fa-desktop"></i> System</button>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-800 pt-4">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Linked Bot Channels</label>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+              <div class="flex items-center space-x-3">
+                <i class="fa-brands fa-whatsapp text-emerald-400 text-lg"></i>
+                <span class="text-xs font-medium text-white" id="link-wa-status">Not connected</span>
+              </div>
+              <button onclick="navigateTo('connect','whatsapp'); toggleProfileModal(false);" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30">Manage</button>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+              <div class="flex items-center space-x-3">
+                <i class="fa-brands fa-telegram text-sky-400 text-lg"></i>
+                <span class="text-xs font-medium text-white" id="link-tg-status">Not connected</span>
+              </div>
+              <button onclick="navigateTo('connect','telegram'); toggleProfileModal(false);" class="text-xs px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 hover:bg-sky-500/30">Manage</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-800 pt-4 space-y-2">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Change Username</label>
+          <input type="text" id="change-username-input" placeholder="New username" class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-brand-500" />
+          <button onclick="handleChangeUsername()" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200">Update Username</button>
+        </div>
+
+        <div class="border-t border-slate-800 pt-4 space-y-2">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Change Password</label>
+          <input type="password" id="change-pass-input" placeholder="New password" class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-brand-500" />
+          <button onclick="handleChangePassword()" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200">Update Password</button>
+        </div>
+
+        <div class="border-t border-slate-800 pt-4 flex items-center justify-between">
+          <button onclick="handleLogout()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-red-400 text-xs font-semibold flex items-center space-x-2">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log Out</span>
+          </button>
+          <button onclick="handleDeleteAccount()" class="px-4 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-300 text-xs font-semibold">Delete Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-800/80 bg-surface-900/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#home" onclick="navigateTo('home')" class="flex items-center space-x-3 cursor-pointer group">
+        <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg border border-brand-500/30 flex items-center justify-center bg-slate-900">
+          <img src="/icons/logo.png" alt="Adevos Min-Bot" class="w-full h-full object-cover" />
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-black text-lg tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">ADEVOS</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 uppercase font-bold">Min-Bot</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-none hidden sm:block">WhatsApp and Telegram Bot Platform</p>
+        </div>
+      </a>
+
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 text-sm font-medium text-slate-300">
+        <button onclick="navigateTo('home')" id="nav-home" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-house text-xs"></i><span>Home</span></button>
+        <button onclick="navigateTo('stats')" id="nav-stats" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-chart-line text-xs"></i><span>Statistics</span></button>
+        <button onclick="navigateTo('connect')" id="nav-connect" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-link text-xs"></i><span>Connect Bot</span></button>
+        <button onclick="navigateTo('dashboard')" id="nav-dashboard" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-gauge-high text-xs"></i><span>Dashboard</span></button>
+        <button onclick="navigateTo('groups')" id="nav-groups" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-users text-xs"></i><span>Groups</span></button>
+        <button onclick="navigateTo('commands')" id="nav-commands" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-terminal text-xs"></i><span>Terminal</span></button>
+        <button onclick="navigateTo('about')" id="nav-about" class="px-3 py-2 rounded-xl hover:text-white hover:bg-slate-800/60 flex items-center space-x-2"><i class="fa-solid fa-circle-info text-xs"></i><span>About</span></button>
+      </nav>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="auth-header-btn" onclick="handleAuthClick()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center space-x-2 shadow-lg">
+          <i class="fa-solid fa-right-to-bracket"></i><span id="auth-btn-text">Login</span>
+        </button>
+        <button id="header-profile-btn" onclick="toggleProfileModal(true)" class="hidden w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-user-gear"></i>
+        </button>
+        <button id="pwa-install-btn" class="hidden px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-brand-400 border border-brand-500/30 hover:bg-slate-700 flex items-center space-x-1.5">
+          <i class="fa-solid fa-download"></i><span class="hidden sm:inline">Install App</span>
+        </button>
+        <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">
+          <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800 bg-surface-900/95 backdrop-blur-xl px-4 pt-3 pb-5 space-y-1">
+      <button onclick="navigateTo('home'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-house w-5 text-center text-emerald-400"></i><span>Home</span></button>
+      <button onclick="navigateTo('stats'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-chart-line w-5 text-center text-emerald-400"></i><span>Platform Statistics</span></button>
+      <button onclick="navigateTo('connect'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-link w-5 text-center text-emerald-400"></i><span>Connect WhatsApp / Telegram</span></button>
+      <button onclick="navigateTo('dashboard'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-gauge-high w-5 text-center text-emerald-400"></i><span>Bot Dashboard</span></button>
+      <button onclick="navigateTo('groups'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-users w-5 text-center text-emerald-400"></i><span>Group Management</span></button>
+      <button onclick="navigateTo('commands'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-terminal w-5 text-center text-emerald-400"></i><span>Command Terminal</span></button>
+      <button onclick="navigateTo('settings'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-sliders w-5 text-center text-emerald-400"></i><span>Bot Settings</span></button>
+      <button onclick="navigateTo('about'); toggleMobileMenu(false);" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400"><i class="fa-solid fa-circle-info w-5 text-center text-emerald-400"></i><span>About</span></button>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- HOME -->
+    <section id="page-home" class="page-view space-y-12">
+      <div class="relative rounded-3xl p-8 sm:p-12 glass-card overflow-hidden border border-slate-800">
+        <div class="absolute -right-20 -top-20 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 max-w-3xl space-y-6">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs font-semibold text-brand-400">
+            <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+            <span>Production-ready multi-device bot management</span>
+          </div>
+          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
+            Manage <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">WhatsApp and Telegram</span> bots from one platform
+          </h1>
+          <p class="text-base sm:text-lg text-slate-300 leading-relaxed">
+            Host, connect, monitor, and remotely command your WhatsApp Multi-Device sessions and Telegram bot instances without setup friction.
+          </p>
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button onclick="navigateTo('connect','whatsapp')" class="px-6 py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl flex items-center space-x-2.5 transition transform hover:-translate-y-0.5">
+              <i class="fa-brands fa-whatsapp text-lg"></i><span>Connect WhatsApp Bot</span>
+            </button>
+            <button onclick="navigateTo('connect','telegram')" class="px-6 py-3.5 rounded-2xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 shadow-xl flex items-center space-x-2.5 transition transform hover:-translate-y-0.5">
+              <i class="fa-brands fa-telegram text-lg"></i><span>Connect Telegram Bot</span>
+            </button>
+            <button onclick="handleAuthClick()" class="px-5 py-3.5 rounded-2xl font-semibold text-sm bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700 flex items-center space-x-2 transition">
+              <i class="fa-solid fa-right-to-bracket"></i><span>Login</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="glass-card rounded-2xl p-6 border border-emerald-500/20 hover:border-emerald-500/40 transition flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-2xl"><i class="fa-brands fa-whatsapp"></i></div>
+            <h3 class="text-xl font-bold text-white">WhatsApp Multi-Device Engine</h3>
+            <p class="text-sm text-slate-300 leading-relaxed">Connect via 8-digit pairing code. Manage multiple concurrent numbers with automatic reconnection and session recovery.</p>
+          </div>
+          <button onclick="navigateTo('connect','whatsapp')" class="mt-6 w-full py-2.5 rounded-xl font-semibold text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 flex items-center justify-center space-x-2">
+            <span>Launch WhatsApp Pairing</span><i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </div>
+        <div class="glass-card rounded-2xl p-6 border border-sky-500/20 hover:border-sky-500/40 transition flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-2xl"><i class="fa-brands fa-telegram"></i></div>
+            <h3 class="text-xl font-bold text-white">Telegram Bot Gateway</h3>
+            <p class="text-sm text-slate-300 leading-relaxed">Create your website login and link your WhatsApp number directly from a private chat with the Telegram bot.</p>
+          </div>
+          <button onclick="navigateTo('connect','telegram')" class="mt-6 w-full py-2.5 rounded-xl font-semibold text-xs bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 flex items-center justify-center space-x-2">
+            <span>Open Telegram Gateway</span><i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section id="page-stats" class="page-view hidden space-y-8">
+      <div>
+        <h2 class="text-2xl font-extrabold text-white">Live Platform Metrics</h2>
+        <p class="text-sm text-slate-400">Public statistics across all connected instances</p>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+          <div><span class="text-xs text-slate-400 block font-medium">Total Users</span><span class="text-2xl font-black text-white" id="stat-total-users">-</span></div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl"><i class="fa-brands fa-whatsapp"></i></div>
+          <div><span class="text-xs text-slate-400 block font-medium">Active WhatsApp Sessions</span><span class="text-2xl font-black text-white" id="stat-wa-sessions">-</span></div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-xl"><i class="fa-brands fa-telegram"></i></div>
+          <div><span class="text-xs text-slate-400 block font-medium">Telegram Bot</span><span class="text-2xl font-black text-white" id="stat-tg-bots">-</span></div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl"><i class="fa-solid fa-comments"></i></div>
+          <div><span class="text-xs text-slate-400 block font-medium">Managed Groups</span><span class="text-2xl font-black text-white" id="stat-total-groups">-</span></div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl"><i class="fa-solid fa-server"></i></div>
+          <div><span class="text-xs text-slate-400 block font-medium">Server Uptime</span><span class="text-lg font-bold text-white font-mono" id="stat-uptime">-</span></div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center text-xl"><i class="fa-solid fa-database"></i></div>
+          <div><span class="text-xs text-slate-400 block font-medium">Database Layer</span><span class="text-sm font-bold text-white" id="stat-mongo-state">-</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONNECT -->
+    <section id="page-connect" class="page-view hidden space-y-8">
+      <div>
+        <h2 class="text-2xl font-extrabold text-white">Connect and Authorize a Bot</h2>
+        <p class="text-sm text-slate-400">Choose a platform below. Logging in is required to link a bot to your account.</p>
+      </div>
+
+      <div class="flex border-b border-slate-800 space-x-4">
+        <button onclick="setConnectTab('whatsapp')" id="tab-btn-wa" class="pb-3 px-2 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400 flex items-center space-x-2"><i class="fa-brands fa-whatsapp text-lg"></i><span>WhatsApp Bot</span></button>
+        <button onclick="setConnectTab('telegram')" id="tab-btn-tg" class="pb-3 px-2 text-sm font-bold text-slate-400 hover:text-white border-b-2 border-transparent flex items-center space-x-2"><i class="fa-brands fa-telegram text-lg"></i><span>Telegram Bot</span></button>
+      </div>
+
+      <div id="connect-wa-content" class="glass-card rounded-2xl p-6 border border-slate-800 max-w-xl space-y-5">
+        <div>
+          <h3 class="text-base font-bold text-white">Generate a WhatsApp Pairing Code</h3>
+          <p class="text-xs text-slate-400">Enter your phone number with country code, e.g. 255712345678</p>
+        </div>
+        <div class="space-y-3">
+          <label class="block text-xs font-medium text-slate-300">Phone Number</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-mono text-sm">+</span>
+            <input type="tel" id="pair-phone-input" placeholder="255712345678" class="w-full pl-8 pr-4 py-3 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500" />
+          </div>
+          <button onclick="requestPairCode()" id="pair-submit-btn" class="w-full py-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-link"></i><span>Generate Pairing Code</span>
+          </button>
+        </div>
+        <div id="pair-result-area" class="hidden p-4 rounded-xl bg-slate-900/90 border border-emerald-500/30 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Pairing Code Generated</span>
+            <button onclick="copyPairCode()" class="text-xs text-slate-400 hover:text-white flex items-center space-x-1"><i class="fa-solid fa-copy"></i><span>Copy</span></button>
+          </div>
+          <div class="text-center py-3 bg-black/40 rounded-xl border border-slate-800">
+            <span id="pair-code-display" class="font-mono text-2xl sm:text-3xl font-black text-emerald-300 tracking-widest">-</span>
+          </div>
+          <div class="text-xs text-slate-300 space-y-1 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+            <p class="font-semibold text-white mb-1">How to apply this code:</p>
+            <p>1. Open WhatsApp on your phone</p>
+            <p>2. Go to Settings and then Linked Devices</p>
+            <p>3. Tap Link a Device, then Link with phone number instead</p>
+            <p>4. Type the code shown above</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="connect-tg-content" class="glass-card rounded-2xl p-6 border border-slate-800 max-w-xl space-y-6 hidden">
+        <div class="flex items-center space-x-4">
+          <div class="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-3xl"><i class="fa-brands fa-telegram"></i></div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Connect the Telegram Bot</h3>
+            <p class="text-xs text-slate-400">Interact with the official bot directly to create your account</p>
+          </div>
+        </div>
+        <div class="space-y-3 text-sm text-slate-300 leading-relaxed bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <p class="font-semibold text-white">Steps to connect:</p>
+          <ul class="list-disc list-inside space-y-1 text-xs text-slate-300">
+            <li>Open the Telegram bot using the button below</li>
+            <li>Send <b>/start</b> to begin</li>
+            <li>Send <b>/createlogins &lt;username&gt;</b> to create your website login</li>
+            <li>Send <b>/pair &lt;number&gt;</b> to link a WhatsApp number to the same account</li>
+          </ul>
+        </div>
+        <a id="tg-launch-link" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-lg flex items-center justify-center space-x-2">
+          <i class="fa-brands fa-telegram text-base"></i><span>Open Telegram Bot</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- DASHBOARD (protected) -->
+    <section id="page-dashboard" class="page-view hidden space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-white">Bot Operations Dashboard</h2>
+          <p class="text-sm text-slate-400">Live status of your connected bot sessions</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="fetchSessions(); showToast('Refreshing sessions...', 'info')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center space-x-2"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh</span></button>
+          <button onclick="navigateTo('connect')" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-bold text-white flex items-center space-x-2"><i class="fa-solid fa-plus"></i><span>Add Number</span></button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl"><i class="fa-brands fa-whatsapp"></i></div>
+              <div><h3 class="font-bold text-white text-base">WhatsApp Number</h3><span class="text-xs text-slate-400" id="dash-wa-number">Not connected</span></div>
+            </div>
+            <span id="dash-wa-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700">UNKNOWN</span>
+          </div>
+          <button onclick="navigateTo('connect','whatsapp')" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200">Manage WhatsApp Connection</button>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-xl"><i class="fa-brands fa-telegram"></i></div>
+              <div><h3 class="font-bold text-white text-base">Telegram Account</h3><span class="text-xs text-slate-400" id="dash-tg-id">Not linked</span></div>
+            </div>
+            <span id="dash-tg-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700">UNKNOWN</span>
+          </div>
+          <a href="#" id="dash-tg-open-link" target="_blank" class="block w-full text-center py-2.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-xs font-semibold text-sky-300 border border-sky-500/30">Open in Telegram</a>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-white">Session History</h3>
+          <span class="text-xs text-slate-400" id="session-count-label">0 sessions</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Phone Number</th><th class="py-3 px-4">State</th><th class="py-3 px-4">Origin</th><th class="py-3 px-4">Last Active</th><th class="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="sessions-table-body" class="divide-y divide-slate-800/60">
+              <tr><td colspan="5" class="py-6 text-center text-slate-500">Log in to view your sessions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- GROUPS (protected) -->
+    <section id="page-groups" class="page-view hidden space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div><h2 class="text-2xl font-extrabold text-white">Group Management</h2><p class="text-sm text-slate-400">Groups where your bot is present, across both platforms</p></div>
+        <button onclick="fetchGroups(); showToast('Groups synchronized', 'info')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center space-x-2"><i class="fa-solid fa-rotate"></i><span>Refresh</span></button>
+      </div>
+      <div id="groups-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="text-slate-500 text-sm">Log in to view your groups.</div>
+      </div>
+    </section>
+
+    <!-- COMMAND TERMINAL (protected) -->
+    <section id="page-commands" class="page-view hidden space-y-8">
+      <div><h2 class="text-2xl font-extrabold text-white">Web Command Terminal</h2><p class="text-sm text-slate-400">Send a command to your own bot and view the result</p></div>
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-5">
+        <div class="flex items-center space-x-3 text-xs">
+          <span class="text-slate-400 font-semibold uppercase">Platform:</span>
+          <button id="cmd-platform-wa" onclick="setCmdPlatform('whatsapp')" class="px-3 py-1.5 rounded-lg font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1.5"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>
+          <button id="cmd-platform-tg" onclick="setCmdPlatform('telegram')" class="px-3 py-1.5 rounded-lg font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white flex items-center space-x-1.5"><i class="fa-brands fa-telegram"></i><span>Telegram</span></button>
+        </div>
+        <div class="flex items-center space-x-2">
+          <div class="relative flex-grow">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400 font-mono text-sm">&gt;</span>
+            <input type="text" id="cmd-input" placeholder="Type a command, e.g. .menu or .ping" onkeydown="if(event.key==='Enter') executeCommand();" class="w-full pl-8 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-brand-500" />
+          </div>
+          <button onclick="executeCommand()" class="px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center space-x-2"><i class="fa-solid fa-paper-plane"></i><span class="hidden sm:inline">Send</span></button>
+        </div>
+        <div class="rounded-xl bg-black/70 p-4 border border-slate-800 font-mono text-xs text-slate-200 min-h-[220px] max-h-[360px] overflow-y-auto space-y-2" id="cmd-output">
+          <div class="text-slate-500">Adevos web command terminal ready. Log in and connect a bot to send commands.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS (protected) -->
+    <section id="page-settings" class="page-view hidden space-y-8">
+      <div><h2 class="text-2xl font-extrabold text-white">Bot Settings</h2><p class="text-sm text-slate-400">Configure operational rules and default behavior</p></div>
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-6 max-w-2xl">
+        <div class="space-y-4">
+          <div><label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Bot Name</label><input type="text" id="set-bot-name" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500" /></div>
+          <div><label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Command Prefix</label><input type="text" id="set-bot-prefix" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-brand-500" /></div>
+          <div><label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Default Group Welcome Message</label><textarea id="set-bot-welcome" rows="3" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"></textarea></div>
+          <div class="border-t border-slate-800 pt-4 space-y-3">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Security and Protection</label>
+            <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800 cursor-pointer"><span class="text-sm font-medium text-white">Anti-Link Filter</span><input type="checkbox" id="set-antilink" class="w-4 h-4 accent-emerald-500 rounded" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800 cursor-pointer"><span class="text-sm font-medium text-white">Group Protection Mode</span><input type="checkbox" id="set-groupprotect" class="w-4 h-4 accent-emerald-500 rounded" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800 cursor-pointer"><span class="text-sm font-medium text-white">Automatic Status Viewing</span><input type="checkbox" id="set-autostatus" class="w-4 h-4 accent-emerald-500 rounded" /></label>
+          </div>
+        </div>
+        <button onclick="saveBotSettings()" class="w-full py-3 rounded-xl font-bold text-xs bg-brand-600 hover:bg-brand-500 text-white shadow-lg">Save Configuration</button>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="page-about" class="page-view hidden space-y-8">
+      <div><h2 class="text-2xl font-extrabold text-white">About Adevos Min-Bot</h2><p class="text-sm text-slate-400">Multi-platform bot management and automation</p></div>
+      <div class="glass-card rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
+        <div class="flex items-center space-x-4">
+          <img src="/icons/logo.png" alt="Adevos Min-Bot" class="w-16 h-16 rounded-2xl object-cover border border-emerald-500/30" />
+          <div><h3 class="text-xl font-black text-white">Adevos Min-Bot</h3><p class="text-xs text-brand-400 font-mono">Multi-Device WhatsApp and Telegram Bot API architecture</p></div>
+        </div>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Adevos Min-Bot unifies WhatsApp and Telegram automation under a single account. A user can begin on either platform, generate website credentials through a bot command, and manage every connected group, session, and setting from one dashboard. Every write goes through the same database, so the website, the WhatsApp bot, and the Telegram bot always stay in agreement.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800"><i class="fa-solid fa-layer-group text-emerald-400 text-lg mb-2"></i><h4 class="font-bold text-white text-sm mb-1">Multi-Device Sessions</h4><p class="text-xs text-slate-400">Connect numbers concurrently using pairing codes.</p></div>
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800"><i class="fa-solid fa-shield-halved text-sky-400 text-lg mb-2"></i><h4 class="font-bold text-white text-sm mb-1">Stateless Recovery</h4><p class="text-xs text-slate-400">Session state lives in MongoDB, not the local disk.</p></div>
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800"><i class="fa-solid fa-mobile-screen text-teal-400 text-lg mb-2"></i><h4 class="font-bold text-white text-sm mb-1">Installable PWA</h4><p class="text-xs text-slate-400">A native-feeling experience on any device.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGIN -->
+    <section id="page-login" class="page-view hidden space-y-6">
+      <div class="max-w-md mx-auto glass-card rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
+        <div class="text-center space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-xl bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center text-white text-xl shadow-lg"><i class="fa-solid fa-shield-halved"></i></div>
+          <h2 class="text-2xl font-bold text-white">Operator Login</h2>
+          <p class="text-xs text-slate-400">Log in with credentials created through the WhatsApp or Telegram bot</p>
+        </div>
+        <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+          <div><label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Username</label><input type="text" id="login-user" required class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500" /></div>
+          <div><label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Password</label><input type="password" id="login-pass" required class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500" /></div>
+          <button type="submit" id="login-btn" class="w-full py-3 rounded-xl font-bold text-xs bg-brand-600 hover:bg-brand-500 text-white shadow-lg flex items-center justify-center space-x-2"><i class="fa-solid fa-right-to-bracket"></i><span>Authenticate</span></button>
+        </form>
+        <p class="text-center text-xs text-slate-500">No account yet? Use <b>/createlogins &lt;username&gt;</b> in the Telegram bot, or <b>.createlogins &lt;username&gt;</b> in a private WhatsApp chat with the bot.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-800/80 bg-surface-900/90 backdrop-blur-md mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <img src="/icons/logo.png" alt="Adevos Min-Bot" class="w-8 h-8 rounded-lg object-cover" />
+          <span class="font-black text-sm text-white">ADEVOS MIN-BOT</span>
+          <span class="text-xs text-slate-500">| Multi-Device Bot Management Platform</span>
+        </div>
+        <div class="flex items-center space-x-4 text-xs font-medium text-slate-400">
+          <a href="#home" onclick="navigateTo('home')" class="hover:text-white">Home</a>
+          <a href="#about" onclick="navigateTo('about')" class="hover:text-white">About</a>
+          <a href="#connect" onclick="navigateTo('connect')" class="hover:text-white">Connect Bot</a>
+          <a href="#dashboard" onclick="navigateTo('dashboard')" class="hover:text-white">Dashboard</a>
+        </div>
+      </div>
+      <div class="border-t border-slate-800/60 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+        <p>Copyright Adevos-X Tech. All rights reserved.</p>
+        <p>Terms of Service and Privacy Policy</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
